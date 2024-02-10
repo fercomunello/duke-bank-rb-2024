@@ -11,12 +11,7 @@ services:
       - POSTGRES_DB=rinhadb
       - POSTGRES_USER=javeiro
       - POSTGRES_PASSWORD=21
-    command: postgres -c shared_preload_libraries='pg_stat_statements' -c 'max_connections=15' -c 'fsync=off' -c 'synchronous_commit=off' -c 'checkpoint_timeout=1d' -c 'full_page_writes=false'
-    deploy:
-      resources:
-        limits:
-          cpus: "0.6"
-          memory: "150MB"
+    command: postgres -c shared_preload_libraries='pg_stat_statements' -c 'fsync=off' -c 'synchronous_commit=off' -c 'checkpoint_timeout=1d' -c 'full_page_writes=false'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s

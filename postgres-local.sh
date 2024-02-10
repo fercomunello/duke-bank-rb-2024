@@ -73,7 +73,7 @@ function recreate_schema() {
 
   docker exec ${pg_container} pg_isready --version
 
-  exec_script_file "create-schema.sql"
+  exec_script_file "bank-schema.sql"
 }
 
 function exec_script_file() {
