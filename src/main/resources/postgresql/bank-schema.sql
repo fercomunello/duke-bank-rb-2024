@@ -14,14 +14,14 @@ SET TIME ZONE 'UTC';
 
 CREATE TYPE TXTYPE AS ENUM ('c', 'd');
 
-CREATE TABLE customer_accounts (
+CREATE TABLE bank_accounts (
     id                BIGSERIAL,
     credit_limit      INT NOT NULL DEFAULT 0 CHECK ( credit_limit >= 0 ),
-    balance           INT NOT NULL,
+    balance           INT NOT NULL DEFAULT 0,
     PRIMARY KEY (id)
 );
 
-CREATE TABLE customer_transactions (
+CREATE TABLE bank_transactions (
     id              BIGSERIAL,
     account_id      BIGINT NOT NULL,
     type            TXTYPE NOT NULL,
@@ -29,17 +29,17 @@ CREATE TABLE customer_transactions (
     description     VARCHAR(10),
     issued_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (id),
-    FOREIGN KEY (account_id) REFERENCES customer_accounts (id)
+    FOREIGN KEY (account_id) REFERENCES bank_accounts (id)
 );
 
-CREATE INDEX idx_ctx_account_id ON customer_transactions (account_id);
-CREATE INDEX idx_customers_tx_filter ON customer_transactions (issued_at DESC);
+CREATE INDEX idx_tx_account_id ON bank_transactions (account_id);
+CREATE INDEX idx_tx_issued_filter ON bank_transactions (issued_at DESC);
 
-CREATE OR REPLACE FUNCTION process_customer_tx(
+CREATE OR REPLACE FUNCTION process_bank_transaction(
     p_account_id BIGINT,
-    p_tx_type TXTYPE,
-    p_tx_amount INT DEFAULT 0,
-    p_tx_description VARCHAR(10) DEFAULT NULL
+    p_type TXTYPE,
+    p_amount INT DEFAULT 0,
+    p_description VARCHAR(10) DEFAULT NULL
 )
 RETURNS TABLE (o_credit_limit INT, o_balance INT) AS $$
 DECLARE
@@ -49,15 +49,14 @@ DECLARE
 BEGIN
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 
-    IF (p_account_id IS NULL OR p_tx_type IS NULL OR p_tx_amount <= 0) THEN
+    IF (p_account_id IS NULL OR p_type IS NULL OR p_amount <= 0) THEN
         RAISE NOTICE 'TX must be associated with an account,
          it must has a type (C-Credit | D-Debit) and amount.';
         ROLLBACK;
     END IF;
 
-    IF (p_tx_type = 'c'::TXTYPE) THEN
-        UPDATE customer_accounts
-            SET balance = (balance + p_tx_amount)
+    IF (p_type = 'c'::TXTYPE) THEN
+        UPDATE bank_accounts SET balance = (balance + p_amount)
         WHERE (id = p_account_id)
         RETURNING credit_limit, balance INTO v_credit_limit, v_balance;
     ELSE
@@ -69,26 +68,25 @@ BEGIN
                c.balance
         INTO v_credit_limit,
              v_balance
-        FROM customer_accounts c
+        FROM bank_accounts c
         WHERE (c.id = p_account_id)
         FOR UPDATE;
 
-        IF (FOUND AND p_tx_type = 'd'::TXTYPE) THEN
-            IF ((v_balance - p_tx_amount) < -v_credit_limit) THEN
+        IF (FOUND AND p_type = 'd'::TXTYPE) THEN
+            IF ((v_balance - p_amount) < -v_credit_limit) THEN
                 RAISE NOTICE 'Debit transaction rejected,
                  insufficient credit limit for this account.';
                 ROLLBACK;
             END IF;
 
-            v_balance := (v_balance - p_tx_amount);
+            v_balance := (v_balance - p_amount);
 
-            UPDATE customer_accounts c SET balance = v_balance
-            WHERE (c.id = p_account_id);
+            UPDATE bank_accounts c SET balance = v_balance WHERE (c.id = p_account_id);
         END IF;
     END IF;
 
-    INSERT INTO customer_transactions (account_id, type, amount, description)
-        VALUES (p_account_id, p_tx_type, p_tx_amount, p_tx_description);
+    INSERT INTO bank_transactions (account_id, type, amount, description)
+        VALUES (p_account_id, p_type, p_amount, p_description);
 
     o_credit_limit := v_credit_limit;
     o_balance := v_balance;
@@ -97,15 +95,15 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-GRANT INSERT ON customer_accounts TO javeiro;
-GRANT UPDATE ON customer_accounts TO javeiro;
-REVOKE DELETE ON customer_accounts FROM javeiro;
+GRANT INSERT ON bank_accounts TO duke;
+GRANT UPDATE ON bank_accounts TO duke;
+REVOKE DELETE ON bank_accounts FROM duke;
 
-GRANT INSERT ON customer_transactions TO javeiro;
-REVOKE UPDATE ON customer_transactions FROM javeiro;
-REVOKE DELETE ON customer_transactions FROM javeiro;
+GRANT INSERT ON bank_transactions TO duke;
+REVOKE UPDATE ON bank_transactions FROM duke;
+REVOKE DELETE ON bank_transactions FROM duke;
 
-INSERT INTO customer_accounts
+INSERT INTO bank_accounts
        (id, credit_limit, balance)
 VALUES (1, 1000 * 100, 0), -- R$1,000.00
        (2, 800 * 100, 0), -- R$8,000.00

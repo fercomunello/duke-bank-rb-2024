@@ -1,8 +1,8 @@
-DO $$ -- Generate ~ 61k rows...
+DO $$ -- 30625(C) + 30625 (D) = 61,250 rows
 DECLARE
     tx_type TXTYPE := 'c';
     commit_window SMALLINT := 50;
-    rows INT := 11250; -- 11250(C) + 11250 (D) = 61,250 rows
+    rows INT := 30625;
     i INT := 1;
     j INT := 1;
 BEGIN
@@ -11,7 +11,7 @@ BEGIN
             i := 1;
             tx_type := 'd';
         END IF;
-        PERFORM process_customer_tx(
+        PERFORM process_bank_transaction(
                 floor((random() * 5) + 1)::BIGINT,
                 tx_type::TXTYPE,
                 floor((random() * (CASE WHEN tx_type = 'c' THEN 750 ELSE 350 END)) + 15)::INT,
@@ -25,7 +25,8 @@ BEGIN
     END LOOP;
     COMMIT;
 END $$;
-SELECT * FROM customer_transactions;
+
+SELECT * FROM bank_transactions;
 
 -- [Summary] - Bank Statements => Plans analysis tool: tatiyants.com/pev/#/plans/new
 -- * Largest node (rows): 11 rows | Costliest node: 41,190.41
@@ -33,7 +34,7 @@ EXPLAIN (ANALYZE, COSTS, VERBOSE, FORMAT JSON, BUFFERS)
 WITH account_totals AS (
     SELECT c.balance,
            c.credit_limit
-    FROM customer_accounts c
+    FROM bank_accounts c
     WHERE (c.id = :acc_id) -- BITMAP INDEX SCAN
 )
 (SELECT t.balance,
@@ -51,7 +52,7 @@ UNION ALL
      tx.amount,
      tx.description,
      tx.issued_at
- FROM customer_transactions tx
+ FROM bank_transactions tx
  WHERE (tx.account_id = :acc_id) -- BITMAP INDEX SCAN
  ORDER BY tx.issued_at DESC -- INDEX SCAN
  LIMIT 10);

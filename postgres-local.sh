@@ -74,12 +74,13 @@ function recreate_schema() {
   docker exec ${pg_container} pg_isready --version
 
   exec_script_file "bank-schema.sql"
+  exec_script_file "scripts/bank-schema-dev.sql"
 }
 
 function exec_script_file() {
   local -r script_file_name=$1
   echo "=> Running ${script_file_name}..."; echo;
-  docker exec ${pg_container} psql -U javeiro -d ${pg_database} --echo-all --quiet \
+  docker exec ${pg_container} psql -U duke -d ${pg_database} --echo-all --quiet \
      -f /postgresql/"${script_file_name}"; echo;
   echo "===================================================="; echo
 }

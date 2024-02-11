@@ -6,11 +6,11 @@ services:
     container_name: "revanche-javeiros-db"
     network_mode: "host"
     volumes:
-      - ./postgresql:/postgresql:ro
+      - ./src/main/resources/postgresql:/postgresql:ro
     environment:
       - POSTGRES_DB=rinhadb
-      - POSTGRES_USER=javeiro
-      - POSTGRES_PASSWORD=21
+      - POSTGRES_USER=duke
+      - POSTGRES_PASSWORD=duke
     command: postgres -c shared_preload_libraries='pg_stat_statements' -c 'fsync=off' -c 'synchronous_commit=off' -c 'checkpoint_timeout=1d' -c 'full_page_writes=false'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
