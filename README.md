@@ -1,17 +1,35 @@
-# revanche-dos-javeiros-rinha2024q1
+# Revache dos Javeiros
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
-
 If you want to learn more about Quarkus, please visit its website: https://quarkus.io/ .
 
 ## Running the application in dev mode
 
 You can run your application in dev mode that enables live coding using:
 ```shell script
-./mvnw compile quarkus:dev
+./mvnw clean compile quarkus:dev
 ```
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/q/dev/.
+
+```shell script
+./mvnw clean compile quarkus:dev
+```
+
+## Starting PostgreSQL
+
+**Recommended:** To create the bank schema, run this interactive bash script to be able to reset and 
+restart the container at runtime.
+```shell script
+chmod +x postgres-local.sh && ./postgres-local.sh
+```
+
+**Alternative**: You could also run docker-compose directly and set the app to regenerate the 
+database schema on every reload.
+```shell script
+docker-compose -f postgres-local.yaml up --detach && \
+./mvnw clean compile quarkus:dev -Dquarkus.args=regenerate-bank-schema
+```
 
 ## Packaging and running the application
 
@@ -43,7 +61,7 @@ Or, if you don't have GraalVM installed, you can run the native executable build
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
 ```
 
-You can then execute your native executable with: `./target/revanche-dos-javeiros-rinha2024q1-1.0.0-SNAPSHOT-runner`
+You can then execute your native executable with: `./target/revanche-dos-javeiros-api-1.0.0-SNAPSHOT-runner`
 
 If you want to learn more about building native executables, please consult https://quarkus.io/guides/maven-tooling.
 
