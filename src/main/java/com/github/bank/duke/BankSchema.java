@@ -1,4 +1,4 @@
-package com.github.fercomunello.api;
+package com.github.bank.duke;
 
 import io.quarkus.runtime.LaunchMode;
 import io.quarkus.runtime.StartupEvent;

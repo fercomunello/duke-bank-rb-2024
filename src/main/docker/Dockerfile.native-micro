@@ -10,11 +10,11 @@
 #
 # Then, build the image with:
 #
-# docker build -f src/main/docker/Dockerfile.native-micro -t quarkus/revanche-dos-javeiros-api .
+# docker build -f src/main/docker/Dockerfile.native-micro -t quarkus/duke-backend .
 #
 # Then run the container using:
 #
-# docker run -i --rm -p 8080:8080 quarkus/revanche-dos-javeiros-api
+# docker run -i --rm -p 8080:8080 quarkus/duke-backend
 #
 ###
 FROM quay.io/quarkus/quarkus-micro-image:2.0

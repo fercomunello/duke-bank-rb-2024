@@ -1,9 +1,9 @@
 version: "3.8"
 
 services:
-  revanche-javeiros-db:
+  duke-bank-db:
     image: postgres:16.1-bullseye
-    container_name: "revanche-javeiros-db"
+    container_name: "duke-bank-db"
     network_mode: "host"
     volumes:
       - ./src/main/resources/postgresql:/postgresql:ro

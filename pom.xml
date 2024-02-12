@@ -5,38 +5,38 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.github.fercomunello.api</groupId>
-  <artifactId>revanche-dos-javeiros-api</artifactId>
+  <name>Duke's Bank System</name>
+  <groupId>com.github.bank.duke</groupId>
+  <artifactId>duke-bank-backend</artifactId>
   <version>1.0.0-SNAPSHOT</version>
-
-  <properties>
-    <java.version>21</java.version>
-
-    <maven.compiler.release>${java.version}</maven.compiler.release>
-    <compiler-plugin.version>3.12.1</compiler-plugin.version>
-
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
-    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.7.1</quarkus.platform.version>
-
-    <skipITs>true</skipITs>
-    <surefire-plugin.version>3.2.5</surefire-plugin.version>
-  </properties>
 
   <developers>
     <developer>
       <id>fercomunello</id>
       <name>Fernando Comunello</name>
       <organization>CIANDT</organization>
-      <organizationUrl>https://ciandt.com/</organizationUrl>
-      <roles>
-        <role>Java Enterprise Developer</role>
-      </roles>
+      <organizationUrl>https://ciandt.com</organizationUrl>
+      <roles><role>Java Enterprise Developer</role></roles>
     </developer>
   </developers>
+
+  <properties>
+    <!-- Java LTS - 2023 -->
+    <java.version>21</java.version>
+
+    <!-- Quarkus Platform -->
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.version>3.7.1</quarkus.platform.version>
+
+    <!-- Maven Plugins-->
+    <maven.compiler.release>${java.version}</maven.compiler.release>
+    <compiler-plugin.version>3.12.1</compiler-plugin.version>
+    <surefire-plugin.version>3.2.5</surefire-plugin.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <skipITs>true</skipITs>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -63,6 +63,11 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
     </dependency>
   </dependencies>
 
@@ -97,16 +102,6 @@
       </plugin>
 
       <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${compiler-plugin.version}</version>
-        <configuration>
-          <compilerArgs>
-            <arg>-parameters</arg>
-          </compilerArgs>
-        </configuration>
-      </plugin>
-
-      <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${surefire-plugin.version}</version>
         <configuration>
@@ -136,10 +131,24 @@
           </systemPropertyVariables>
         </configuration>
       </plugin>
+
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${compiler-plugin.version}</version>
+        <configuration>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
+          <compilerArgs>
+            <arg>--enable-preview</arg>
+            <arg>-parameters</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
   <profiles>
+    <!-- Alternative GraalVM Profile -->
     <profile>
       <id>native</id>
       <activation>

@@ -2,7 +2,7 @@
 set -e
 cd "$(dirname "$0")"
 
-readonly pg_container="revanche-javeiros-db"
+readonly pg_container="duke-bank-db"
 readonly pg_database="rinhadb"
 
 function launch_prompt() {
