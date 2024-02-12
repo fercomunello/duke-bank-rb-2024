@@ -15,18 +15,22 @@ import java.io.InputStream;
 import java.net.URL;
 
 /**
- * <p>Run database schema scripts automatically, for development only.</p> <br>
+ * <p>Run database schema scripts automatically, for TEST and DEV profiles only.</p> <br>
  *
- * <p>Regenerate the schema on every reload:</p>
+ * <p>TEST: Triggers schema regeneration before starting to run the test suite.</p>
+ *
+ * <p>DEV: Triggers schema regeneration between dev-mod reloads:</p>
  * $ mvn clean quarkus:dev -Dquarkus.args=regenerate-bank-schema <br><br>
+ *
+ * Note: For development, you could simply run ./postgres-local.sh script too as it is more flexible.<br><br>
  */
 @Singleton
-final class BankSchema {
+public final class BankSchema {
 
     private static final Logger LOG = Logger.getLogger(BankSchema.class);
 
     private static final String SQL_SCHEMA_PATH = "postgresql/bank-schema.sql",
-                                REGENERATE_DB_SCHEMA = "regenerate-bank-schema";
+        REGENERATE_DB_SCHEMA = "regenerate-bank-schema";
 
     @Inject
     PgPool pool;
@@ -35,13 +39,24 @@ final class BankSchema {
     @CommandLineArguments
     String[] arguments;
 
-    public void onStart(@Observes final StartupEvent event) {
-        if (LaunchMode.current() != LaunchMode.DEVELOPMENT) {
+    public void onStartup(@Observes final StartupEvent event) {
+        final var environment = LaunchMode.current();
+        if (environment != LaunchMode.DEVELOPMENT && environment != LaunchMode.TEST) {
             return;
         }
-        for (final var arg : this.arguments) {
-            if (!arg.equals(REGENERATE_DB_SCHEMA)) {
-                return;
+        regenerate();
+    }
+
+    public void regenerate() {
+        final var environment = LaunchMode.current();
+        if (environment == LaunchMode.NORMAL) {
+            LOG.warn("Unable to regenerate database schema, this is not supported in this profile.");
+        }
+        if (environment == LaunchMode.DEVELOPMENT) {
+            for (final var arg : this.arguments) {
+                if (!arg.equals(REGENERATE_DB_SCHEMA)) {
+                    return;
+                }
             }
         }
 
@@ -49,7 +64,7 @@ final class BankSchema {
             .getContextClassLoader().getResource(SQL_SCHEMA_PATH);
 
         if (bankSchemaResource == null) {
-            LOG.warnf("Cannot find %s script.", SQL_SCHEMA_PATH);
+            LOG.errorf("Cannot find %s script.", SQL_SCHEMA_PATH);
             return;
         }
 
@@ -57,7 +72,7 @@ final class BankSchema {
         try (InputStream stream = bankSchemaResource.openStream()) {
             bytes = stream.readAllBytes();
         } catch (final IOException ex) {
-            LOG.warnf(ex, "Cannot read %s file from classpath.", SQL_SCHEMA_PATH);
+            LOG.errorf(ex, "Cannot read %s file from classpath.", SQL_SCHEMA_PATH);
             return;
         }
 
