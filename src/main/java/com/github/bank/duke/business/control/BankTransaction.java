@@ -49,8 +49,8 @@ public final class BankTransaction extends StoredFunction<BankTransactionState> 
         tuple.addLong(this.amount);
         tuple.addString(this.description);
 
-        return withTransaction((connection, pool) ->
-            pool.executeQuery(connection, STMT, tuple, out ->
+        return withTransaction(conn ->
+            conn.executeReturning(STMT, tuple, out ->
                 new BankTransactionState(
                     out.getLong(POS_CREDIT_LIMIT),
                     out.getLong(POS_BALANCE)
