@@ -1,7 +1,7 @@
 package com.github.bank.duke.business.entity;
 
 import com.github.bank.duke.business.control.BankProtocol;
-import com.github.bank.duke.http.media.Json;
+import com.github.bank.duke.vertx.http.media.Json;
 import io.vertx.core.json.JsonObject;
 
 import java.util.LinkedHashMap;

@@ -1,6 +1,6 @@
-package com.github.bank.duke.http;
+package com.github.bank.duke.vertx.http;
 
-import com.github.bank.duke.http.media.Media;
+import com.github.bank.duke.vertx.http.media.Media;
 import org.jetbrains.annotations.Nullable;
 
 public sealed interface Response<T extends Media>

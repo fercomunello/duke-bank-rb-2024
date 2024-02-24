@@ -1,6 +1,6 @@
 package com.github.bank.duke.control;
 
-import com.github.bank.duke.business.control.result.BankTransactionResult;
+import com.github.bank.duke.business.control.BankTransactionResult;
 import com.github.bank.duke.business.entity.BankAccount;
 import com.github.bank.duke.business.entity.BankTransactionState;
 import com.github.bank.duke.business.entity.TransactionType;
@@ -29,10 +29,10 @@ final class BankTransactionTest extends BankTransactionTestDouble {
             () -> createAccount(account).chain(accountId ->
                 performTransaction(TransactionType.CREDIT, "#Credit TX", accountId, amount)
             ),
-            result -> {
-                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, result);
+            tx -> {
+                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, tx);
 
-                final BankTransactionState transactionState = result.entity();
+                final BankTransactionState transactionState = tx.transactionState();
                 assertEquals(TransactionType.CREDIT, transactionState.type());
                 assertEquals(amount, transactionState.amount());
 
@@ -58,10 +58,10 @@ final class BankTransactionTest extends BankTransactionTestDouble {
                 accountIdReference.set(accountId);
                 return performTransaction(TransactionType.CREDIT, accountId, firstAmount);
             }),
-            result -> {
-                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, result);
+            tx -> {
+                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, tx);
 
-                final BankTransactionState transactionState = result.entity();
+                final BankTransactionState transactionState = tx.transactionState();
                 assertEquals(TransactionType.CREDIT, transactionState.type());
                 assertEquals(firstAmount, transactionState.amount());
 
@@ -74,10 +74,10 @@ final class BankTransactionTest extends BankTransactionTestDouble {
 
         asserter.assertThat(
             () -> performTransaction(TransactionType.DEBIT, accountIdReference.get(), secondAmount),
-            result -> {
-                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, result);
+            tx -> {
+                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, tx);
 
-                final BankTransactionState transactionState = result.entity();
+                final BankTransactionState transactionState = tx.transactionState();
                 assertEquals(TransactionType.DEBIT, transactionState.type());
                 assertEquals(secondAmount, transactionState.amount());
 
@@ -100,10 +100,10 @@ final class BankTransactionTest extends BankTransactionTestDouble {
             () -> createAccount(account).chain(accountId ->
                 performTransaction(DEBIT, accountId, amount)
             ),
-            result -> {
-                assertInstanceOf(BankTransactionResult.AccountCreditExceeded.class, result);
+            tx -> {
+                assertInstanceOf(BankTransactionResult.AccountCreditExceeded.class, tx);
 
-                final BankTransactionState transactionState = result.entity();
+                final BankTransactionState transactionState = tx.transactionState();
                 assertEquals(TransactionType.DEBIT, transactionState.type());
                 assertEquals(amount, transactionState.amount());
 

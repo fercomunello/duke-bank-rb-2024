@@ -1,6 +1,5 @@
 package com.github.bank.duke.business.control;
 
-import com.github.bank.duke.business.control.result.BankTransactionResult;
 import com.github.bank.duke.business.entity.BankAccount;
 import com.github.bank.duke.business.entity.BankTransactionState;
 import com.github.bank.duke.business.entity.TransactionType;
@@ -12,6 +11,8 @@ import io.vertx.sqlclient.impl.ArrayTuple;
 import org.intellij.lang.annotations.Language;
 
 import java.util.Optional;
+
+import static com.github.bank.duke.business.control.BankTransactionResult.*;
 
 public final class BankTransaction implements StoredFunction<BankTransactionResult> {
 
@@ -70,11 +71,11 @@ public final class BankTransaction implements StoredFunction<BankTransactionResu
                 final var transactionState = new BankTransactionState(account, this.type, this.amount);
 
                 if (out.getBoolean(POS_TX_PERFORMED)) {
-                    return new BankTransactionResult.TransactionPerformed(transactionState);
+                    return new TransactionPerformed(transactionState);
                 } else if (account.isCreditLimitExceeded()) {
-                    return new BankTransactionResult.AccountCreditExceeded(transactionState);
+                    return new AccountCreditExceeded(transactionState);
                 } else {
-                    return new BankTransactionResult.Failure();
+                    return new TransactionFailure();
                 }
             }).onItem().transform(Optional::get)
         );

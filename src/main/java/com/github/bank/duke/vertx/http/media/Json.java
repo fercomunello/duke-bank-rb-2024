@@ -1,10 +1,8 @@
-package com.github.bank.duke.http.media;
-
-import io.vertx.core.json.JsonObject;
+package com.github.bank.duke.vertx.http.media;
 
 public interface Json extends Media {
 
-    JsonObject asJson();
+    io.vertx.core.json.JsonObject asJson();
 
     @Override
     default String serialize() {

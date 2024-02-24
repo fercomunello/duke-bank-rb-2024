@@ -1,6 +1,9 @@
 package com.github.bank.duke.vertx.sql;
 
-public interface Dialect {
-    String SQL = "SQL";
-    String PSQL = "PostgreSQL";
+public final class Dialect {
+
+    public static final String SQL = "SQL";
+    public static final String PSQL = "PostgreSQL";
+
+    private Dialect() {}
 }
