@@ -41,7 +41,9 @@ CREATE OR REPLACE FUNCTION process_bank_transaction(
     p_amount BIGINT DEFAULT 0,
     p_description VARCHAR(10) DEFAULT NULL
 )
-RETURNS TABLE (o_credit_limit INT, o_balance BIGINT) AS $$
+RETURNS TABLE (o_tx_performed BOOL,
+               o_credit_limit INT,
+               o_balance BIGINT) AS $$
 DECLARE
     v_credit_limit INT NOT NULL DEFAULT 0;
     v_balance      BIGINT NOT NULL DEFAULT 0;
@@ -50,15 +52,17 @@ BEGIN
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 
     IF (p_account_id IS NULL OR p_type IS NULL OR p_amount <= 0) THEN
-        RAISE NOTICE 'TX must be associated with an account,
-         it must has a type (C-Credit | D-Debit) and amount.';
-        ROLLBACK;
+        RAISE check_violation USING MESSAGE =
+          'TX must be associated with an account, it must has a type (C-Credit | D-Debit) and an amount.',
+          HINT = 'Check the validation steps on the application side';
     END IF;
 
     IF (p_type = 'c'::TXTYPE) THEN
         UPDATE bank_accounts SET balance = (balance + p_amount)
         WHERE (id = p_account_id)
         RETURNING credit_limit, balance INTO v_credit_limit, v_balance;
+
+        o_tx_performed := TRUE;
     ELSE
         v_lock_account := TRUE;
     END IF;
@@ -73,20 +77,24 @@ BEGIN
         FOR UPDATE;
 
         IF (FOUND AND p_type = 'd'::TXTYPE) THEN
-            IF ((v_balance - p_amount) < -v_credit_limit) THEN
-                RAISE NOTICE 'Debit transaction rejected,
-                 insufficient credit credit limit for this account.';
-                ROLLBACK;
-            END IF;
-
             v_balance := (v_balance - p_amount);
+            IF (v_balance < -v_credit_limit) THEN
+                /* Debit transaction rejected, insufficient
+                   credit creditLimit for this account. */
+                o_tx_performed := FALSE;
+            ELSE
+                UPDATE bank_accounts account SET balance = v_balance
+                WHERE (account.id = p_account_id);
 
-            UPDATE bank_accounts c SET balance = v_balance WHERE (c.id = p_account_id);
+                o_tx_performed := TRUE;
+            END IF;
         END IF;
     END IF;
 
-    INSERT INTO bank_transactions (account_id, type, amount, description)
-        VALUES (p_account_id, p_type, p_amount, p_description);
+    IF (o_tx_performed) THEN
+        INSERT INTO bank_transactions (account_id, type, amount, description)
+            VALUES (p_account_id, p_type, p_amount, p_description);
+    END IF;
 
     o_credit_limit := v_credit_limit;
     o_balance := v_balance;
@@ -104,9 +112,9 @@ REVOKE UPDATE ON bank_transactions FROM duke;
 REVOKE DELETE ON bank_transactions FROM duke;
 
 INSERT INTO bank_accounts
-       (id, credit_limit, balance)
-VALUES (1, 1000 * 100, 0), -- $1,000.00 == 100000
-       (2, 80000 * 100, 0), -- $80,000.00 == 80000
-       (3, 10000 * 100, 0), -- $10,000.00 == 1000000
-       (4, 100000 * 100, 0), -- $100,000.00 == 10000000
-       (5, 5000 * 100, 0); -- $5,000.00 == 500000
+       (credit_limit, balance)
+VALUES (1000 * 100, 0),   -- 1 | $1,000.00 == 100000
+       (80000 * 100, 0),  -- 2 | $80,000.00 == 80000
+       (10000 * 100, 0),  -- 3 | $10,000.00 == 1000000
+       (100000 * 100, 0), -- 4 | $100,000.00 == 10000000
+       (5000 * 100, 0);   -- 5 | $5,000.00 == 500000

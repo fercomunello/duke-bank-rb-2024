@@ -1,68 +1,117 @@
 package com.github.bank.duke.control;
 
-import com.github.bank.duke.BankSchema;
-import com.github.bank.duke.business.control.BankTransaction;
+import com.github.bank.duke.business.control.Result;
 import com.github.bank.duke.business.entity.BankTransactionState;
+import com.github.bank.duke.business.entity.TransactionType;
+import com.github.bank.duke.business.entity.BankAccount;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.vertx.RunOnVertxContext;
 import io.quarkus.test.vertx.UniAsserter;
-import io.smallrye.mutiny.Uni;
-import jakarta.inject.Inject;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static com.github.bank.duke.business.entity.TransactionType.CREDIT;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static com.github.bank.duke.business.entity.TransactionType.DEBIT;
-import static com.github.bank.duke.entity.data.BankAccounts.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
-public class BankTransactionTest {
-
-    @Inject
-    BankSchema bankSchema;
-
-    @AfterEach
-    void afterEach() {
-        this.bankSchema.regenerate();
-    }
+final class BankTransactionTest extends BankTransactionTestDouble {
 
     @Test
-    @DisplayName("Perform Credit Transaction (C)")
     @RunOnVertxContext
+    @DisplayName("Perform Credit Transaction (C)")
     public void testPerformCreditTx(final UniAsserter asserter) {
         final long amount = (1_000L * 100);
+        final var account = new BankAccount(1000 * 100, 0);
 
-        final Uni<BankTransactionState> performBankTransaction =
-            new BankTransaction(CREDIT, CREDIT_TX_REASON, ACCOUNT.id(), amount)
-                .execute();
+        asserter.assertThat(
+            () -> createAccount(account).chain(accountId ->
+                performTransaction(TransactionType.CREDIT, "#Credit TX", accountId, amount)
+            ),
+            result -> {
+                assertInstanceOf(Result.Success.class, result);
 
-        asserter.assertThat(() -> performBankTransaction, txState -> {
-            assertEquals(amount, txState.balance());
-            assertEquals(ACCOUNT.limit(), txState.creditLimit());
-        });
+                final BankTransactionState transactionState = result.value();
+                assertEquals(TransactionType.CREDIT, transactionState.type());
+                assertEquals(amount, transactionState.amount());
+
+                final BankAccount accountState = transactionState.account();
+                assertEquals(amount, accountState.balance());
+                assertEquals(account.creditLimit(), accountState.creditLimit());
+            }
+        );
     }
 
     @Test
-    @DisplayName("Perform Credit (C) + Debit (D) Transaction")
     @RunOnVertxContext
+    @DisplayName("Perform Credit (C) + Debit (D) Transaction")
     public void testPerformDebitTx(final UniAsserter asserter) {
-        final long amount1 = (1_700L * 100),
-                   amount2 = (60L * 100);
+        final long firstAmount = (1_700L * 100),
+                   secondAmount = (60L * 100);
+
+        final var account = new BankAccount(1000 * 100, 0);
+        final var accountIdReference = new AtomicReference<Long>();
 
         asserter.assertThat(
-            () -> new BankTransaction(CREDIT, CREDIT_TX_REASON, ACCOUNT.id(), amount1).execute(),
-            txState -> {
-                assertEquals(amount1, txState.balance());
-                assertEquals(ACCOUNT.limit(), txState.creditLimit());
+            () -> createAccount(account).chain(accountId -> {
+                accountIdReference.set(accountId);
+                return performTransaction(TransactionType.CREDIT, accountId, firstAmount);
+            }),
+            result -> {
+                assertInstanceOf(Result.Success.class, result);
+
+                final BankTransactionState transactionState = result.value();
+                assertEquals(TransactionType.CREDIT, transactionState.type());
+                assertEquals(firstAmount, transactionState.amount());
+
+                final BankAccount accountState = transactionState.account();
+                assertEquals(firstAmount, accountState.balance());
+                assertEquals(account.creditLimit(), accountState.creditLimit());
+                assertFalse(accountState.isCreditLimitExceeded());
             }
         );
+
         asserter.assertThat(
-            () -> new BankTransaction(DEBIT, DEBIT_TX_REASON, ACCOUNT.id(), amount2).execute(),
-            txState -> {
-                assertEquals(1_640L * 100, txState.balance());
-                assertEquals(ACCOUNT.limit(), txState.creditLimit());
+            () -> performTransaction(TransactionType.DEBIT, accountIdReference.get(), secondAmount),
+            result -> {
+                assertInstanceOf(Result.Success.class, result);
+
+                final BankTransactionState transactionState = result.value();
+                assertEquals(TransactionType.DEBIT, transactionState.type());
+                assertEquals(secondAmount, transactionState.amount());
+
+                final BankAccount accountState = transactionState.account();
+                assertEquals(1_640L * 100, accountState.balance());
+                assertEquals(account.creditLimit(), accountState.creditLimit());
+                assertFalse(accountState.isCreditLimitExceeded());
+            }
+        );
+    }
+
+    @Test
+    @RunOnVertxContext
+    @DisplayName("Reject Debit (D) Transactions that exceeds account credit limit")
+    public void testCreditLimitExceeded(final UniAsserter asserter) {
+        final long amount = (2000 * 100);
+        final var account = new BankAccount(1000 * 100, 0);
+
+        asserter.assertThat(
+            () -> createAccount(account).chain(accountId ->
+                performTransaction(DEBIT, accountId, amount)
+            ),
+            result -> {
+                assertInstanceOf(Result.Failure.class, result);
+
+                final BankTransactionState transactionState = result.value();
+                assertEquals(TransactionType.DEBIT, transactionState.type());
+                assertEquals(amount, transactionState.amount());
+
+                final BankAccount accountState = transactionState.account();
+
+                assertEquals(-amount, accountState.balance());
+                assertEquals(account.creditLimit(), accountState.creditLimit());
+                assertTrue(accountState.isCreditLimitExceeded());
             }
         );
     }

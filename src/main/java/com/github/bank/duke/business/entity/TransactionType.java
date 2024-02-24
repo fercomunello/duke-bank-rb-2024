@@ -1,11 +1,11 @@
 package com.github.bank.duke.business.entity;
 
-import com.github.bank.duke.business.entity.naming.RBF;
+import com.github.bank.duke.business.control.BankProtocol;
 
 public enum TransactionType {
 
-    CREDIT (  RBF.CREDIT_SYMBOL ),
-    DEBIT  (  RBF.DEBIT_SYMBOL  );
+    CREDIT (  BankProtocol.CREDIT_SYMBOL ),
+    DEBIT  (  BankProtocol.DEBIT_SYMBOL  );
 
     public final String symbol;
 

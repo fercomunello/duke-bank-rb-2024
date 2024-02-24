@@ -75,6 +75,7 @@ function recreate_schema() {
 
   exec_script_file "bank-schema.sql"
   exec_script_file "scripts/bank-schema-dev.sql"
+  exec_script_file "tests/bank-transaction-test.sql"
 }
 
 function exec_script_file() {
