@@ -2,10 +2,9 @@ package com.github.bank.duke.control;
 
 import com.github.bank.duke.BankSchema;
 import com.github.bank.duke.business.control.BankTransaction;
-import com.github.bank.duke.business.control.Result;
-import com.github.bank.duke.business.entity.BankTransactionState;
-import com.github.bank.duke.business.entity.TransactionType;
+import com.github.bank.duke.business.control.result.BankTransactionResult;
 import com.github.bank.duke.business.entity.BankAccount;
+import com.github.bank.duke.business.entity.TransactionType;
 import com.github.bank.duke.vertx.sql.Database;
 import com.github.bank.duke.vertx.sql.Dialect;
 import io.smallrye.mutiny.Uni;
@@ -30,7 +29,7 @@ abstract class BankTransactionTestDouble {
         this.bankSchema.regenerate();
     }
 
-    protected Uni<Result<BankTransactionState>> performTransaction(
+    protected Uni<BankTransactionResult> performTransaction(
         final TransactionType type,
         final Long accountId,
         final long amount)
@@ -38,13 +37,13 @@ abstract class BankTransactionTestDouble {
         return performTransaction(type, null, accountId, amount);
     }
 
-    protected Uni<Result<BankTransactionState>> performTransaction(
+    protected Uni<BankTransactionResult> performTransaction(
         final TransactionType type,
         final @Nullable String description,
         final Long accountId,
         final long amount)
     {
-        return new BankTransaction(type, description, accountId, amount).execute();
+        return new BankTransaction(accountId, type, description, amount).execute();
     }
 
     protected Uni<Long> createAccount(final BankAccount account) {

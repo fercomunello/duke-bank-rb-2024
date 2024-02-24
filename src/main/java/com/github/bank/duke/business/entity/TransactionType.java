@@ -12,4 +12,10 @@ public enum TransactionType {
     TransactionType(final char symbol) {
         this.symbol = String.valueOf(symbol);
     }
+
+    public static TransactionType of(final String symbol) {
+        if (CREDIT.symbol.equals(symbol)) return CREDIT;
+        if (DEBIT.symbol.equals(symbol)) return DEBIT;
+        return null;
+    }
 }

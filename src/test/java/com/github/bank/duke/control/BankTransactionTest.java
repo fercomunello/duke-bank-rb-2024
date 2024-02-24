@@ -1,9 +1,9 @@
 package com.github.bank.duke.control;
 
-import com.github.bank.duke.business.control.Result;
+import com.github.bank.duke.business.control.result.BankTransactionResult;
+import com.github.bank.duke.business.entity.BankAccount;
 import com.github.bank.duke.business.entity.BankTransactionState;
 import com.github.bank.duke.business.entity.TransactionType;
-import com.github.bank.duke.business.entity.BankAccount;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.vertx.RunOnVertxContext;
 import io.quarkus.test.vertx.UniAsserter;
@@ -30,9 +30,9 @@ final class BankTransactionTest extends BankTransactionTestDouble {
                 performTransaction(TransactionType.CREDIT, "#Credit TX", accountId, amount)
             ),
             result -> {
-                assertInstanceOf(Result.Success.class, result);
+                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, result);
 
-                final BankTransactionState transactionState = result.value();
+                final BankTransactionState transactionState = result.entity();
                 assertEquals(TransactionType.CREDIT, transactionState.type());
                 assertEquals(amount, transactionState.amount());
 
@@ -59,9 +59,9 @@ final class BankTransactionTest extends BankTransactionTestDouble {
                 return performTransaction(TransactionType.CREDIT, accountId, firstAmount);
             }),
             result -> {
-                assertInstanceOf(Result.Success.class, result);
+                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, result);
 
-                final BankTransactionState transactionState = result.value();
+                final BankTransactionState transactionState = result.entity();
                 assertEquals(TransactionType.CREDIT, transactionState.type());
                 assertEquals(firstAmount, transactionState.amount());
 
@@ -75,9 +75,9 @@ final class BankTransactionTest extends BankTransactionTestDouble {
         asserter.assertThat(
             () -> performTransaction(TransactionType.DEBIT, accountIdReference.get(), secondAmount),
             result -> {
-                assertInstanceOf(Result.Success.class, result);
+                assertInstanceOf(BankTransactionResult.TransactionPerformed.class, result);
 
-                final BankTransactionState transactionState = result.value();
+                final BankTransactionState transactionState = result.entity();
                 assertEquals(TransactionType.DEBIT, transactionState.type());
                 assertEquals(secondAmount, transactionState.amount());
 
@@ -101,9 +101,9 @@ final class BankTransactionTest extends BankTransactionTestDouble {
                 performTransaction(DEBIT, accountId, amount)
             ),
             result -> {
-                assertInstanceOf(Result.Failure.class, result);
+                assertInstanceOf(BankTransactionResult.AccountCreditExceeded.class, result);
 
-                final BankTransactionState transactionState = result.value();
+                final BankTransactionState transactionState = result.entity();
                 assertEquals(TransactionType.DEBIT, transactionState.type());
                 assertEquals(amount, transactionState.amount());
 

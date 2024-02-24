@@ -1,17 +1,19 @@
 package com.github.bank.duke.business.control;
 
+import com.github.bank.duke.business.control.result.BankTransactionResult;
 import com.github.bank.duke.business.entity.BankAccount;
 import com.github.bank.duke.business.entity.BankTransactionState;
 import com.github.bank.duke.business.entity.TransactionType;
 import com.github.bank.duke.vertx.sql.Dialect;
 import com.github.bank.duke.vertx.sql.StoredFunction;
 import io.smallrye.mutiny.Uni;
+import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.impl.ArrayTuple;
 import org.intellij.lang.annotations.Language;
 
 import java.util.Optional;
 
-public final class BankTransaction implements StoredFunction<BankTransactionState> {
+public final class BankTransaction implements StoredFunction<BankTransactionResult> {
 
     @Language(value = Dialect.PSQL)
     private static final String PROCESS_TX_SQL =
@@ -30,13 +32,20 @@ public final class BankTransaction implements StoredFunction<BankTransactionStat
 
     private final TransactionType type;
     private final String description;
-    private final long accountId;
-    private final long amount;
+    private final Long accountId;
+    private final Long amount;
 
-    public BankTransaction(final TransactionType type,
+    public BankTransaction(final Long accountId, final JsonObject payload) {
+        this(accountId, TransactionType.of(payload.getString(BankProtocol.TX_TYPE)),
+            payload.getString(BankProtocol.DESCRIPTION),
+            payload.getLong(BankProtocol.AMOUNT)
+        );
+    }
+
+    public BankTransaction(final Long accountId,
+                           final TransactionType type,
                            final String description,
-                           final long accountId,
-                           final long amount) {
+                           final Long amount) {
         this.type = type;
         this.description = description;
         this.accountId = accountId;
@@ -44,7 +53,7 @@ public final class BankTransaction implements StoredFunction<BankTransactionStat
     }
 
     @Override
-    public Uni<Result<BankTransactionState>> execute() {
+    public Uni<BankTransactionResult> execute() {
         final var tuple = new ArrayTuple(4);
         tuple.addLong(this.accountId);
         tuple.addString(this.type.symbol);
@@ -61,19 +70,13 @@ public final class BankTransaction implements StoredFunction<BankTransactionStat
                 final var transactionState = new BankTransactionState(account, this.type, this.amount);
 
                 if (out.getBoolean(POS_TX_PERFORMED)) {
-                    final boolean creditLimitExceeded = account.isCreditLimitExceeded();
-                    if (!creditLimitExceeded) {
-                        return new Result.Success<>(transactionState);
-                    } else {
-                        return new Result.Failure<>(transactionState, () -> STR."""
-                            Debit transaction rejected, insufficient
-                            credit limit for account \{accountId}."""
-                        );
-                    }
+                    return new BankTransactionResult.TransactionPerformed(transactionState);
+                } else if (account.isCreditLimitExceeded()) {
+                    return new BankTransactionResult.AccountCreditExceeded(transactionState);
+                } else {
+                    return new BankTransactionResult.Failure();
                 }
-                return new Result.Failure<>(transactionState);
-            }).onItem()
-              .transform(Optional::get)
+            }).onItem().transform(Optional::get)
         );
     }
 }
