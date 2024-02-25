@@ -1,33 +1,36 @@
-package com.github.bank.duke.control;
+package com.github.bank.duke.business.control;
 
-import com.github.bank.duke.business.control.BankTransactionResult;
 import com.github.bank.duke.business.entity.BankAccount;
 import com.github.bank.duke.business.entity.BankTransactionState;
 import com.github.bank.duke.business.entity.TransactionType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.vertx.RunOnVertxContext;
 import io.quarkus.test.vertx.UniAsserter;
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.github.bank.duke.business.entity.TransactionType.DEBIT;
 import static org.junit.jupiter.api.Assertions.*;
 
 @QuarkusTest
-final class BankTransactionTest extends BankTransactionTestDouble {
+final class BankTransactionTest {
+
+    @Inject
+    Bank bank;
 
     @Test
     @RunOnVertxContext
     @DisplayName("Perform Credit Transaction (C)")
     public void testPerformCreditTx(final UniAsserter asserter) {
         final long amount = (1_000L * 100);
-        final var account = new BankAccount(1000 * 100, 0);
+        final var account = new BankAccount(0, 0);
 
         asserter.assertThat(
-            () -> createAccount(account).chain(accountId ->
-                performTransaction(TransactionType.CREDIT, "#Credit TX", accountId, amount)
+            () -> this.bank.createAccount(account).chain(accountId ->
+                performTransaction(TransactionType.CREDIT, accountId, amount)
             ),
             tx -> {
                 assertInstanceOf(BankTransactionResult.TransactionPerformed.class, tx);
@@ -54,7 +57,7 @@ final class BankTransactionTest extends BankTransactionTestDouble {
         final var accountIdReference = new AtomicReference<Long>();
 
         asserter.assertThat(
-            () -> createAccount(account).chain(accountId -> {
+            () -> this.bank.createAccount(account).chain(accountId -> {
                 accountIdReference.set(accountId);
                 return performTransaction(TransactionType.CREDIT, accountId, firstAmount);
             }),
@@ -72,8 +75,8 @@ final class BankTransactionTest extends BankTransactionTestDouble {
             }
         );
 
-        asserter.assertThat(
-            () -> performTransaction(TransactionType.DEBIT, accountIdReference.get(), secondAmount),
+        asserter.assertThat(() -> performTransaction(
+                TransactionType.DEBIT, accountIdReference.get(), secondAmount),
             tx -> {
                 assertInstanceOf(BankTransactionResult.TransactionPerformed.class, tx);
 
@@ -97,8 +100,8 @@ final class BankTransactionTest extends BankTransactionTestDouble {
         final var account = new BankAccount(1000 * 100, 0);
 
         asserter.assertThat(
-            () -> createAccount(account).chain(accountId ->
-                performTransaction(DEBIT, accountId, amount)
+            () -> this.bank.createAccount(account).chain(accountId ->
+                performTransaction(TransactionType.DEBIT, accountId, amount)
             ),
             tx -> {
                 assertInstanceOf(BankTransactionResult.AccountCreditExceeded.class, tx);
@@ -114,5 +117,14 @@ final class BankTransactionTest extends BankTransactionTestDouble {
                 assertTrue(accountState.isCreditLimitExceeded());
             }
         );
+    }
+
+    private Uni<BankTransactionResult> performTransaction(
+        final TransactionType type, final Long accountId, final long amount,
+        final String ... description)
+    {
+        return new BankTransaction(accountId, type, (description.length > 0
+            ? String.join(" ", description) : null), amount)
+            .execute();
     }
 }

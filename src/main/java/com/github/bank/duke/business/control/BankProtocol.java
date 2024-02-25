@@ -19,11 +19,11 @@ public final class BankProtocol {
 
     // Payload Fields
     public static final String
-        CREDIT_LIMIT = "limite",
-        BALANCE = "saldo",
-        AMOUNT = "valor",
+        TX_CREDIT_LIMIT = "limite",
+        TX_BALANCE = "saldo",
+        TX_AMOUNT = "valor",
         TX_TYPE = "tipo",
-        DESCRIPTION = "descricao"
+        TX_DESCRIPTION = "descricao"
     ;
 
     private BankProtocol() {}

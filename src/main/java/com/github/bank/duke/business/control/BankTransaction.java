@@ -36,10 +36,10 @@ public final class BankTransaction implements StoredFunction<BankTransactionResu
     private final Long accountId;
     private final Long amount;
 
-    public BankTransaction(final Long accountId, final JsonObject payload) {
-        this(accountId, TransactionType.of(payload.getString(BankProtocol.TX_TYPE)),
-            payload.getString(BankProtocol.DESCRIPTION),
-            payload.getLong(BankProtocol.AMOUNT)
+    public BankTransaction(final Long accountId, final JsonObject json) {
+        this(accountId, TransactionType.of(json.getString(BankProtocol.TX_TYPE)),
+            json.getString(BankProtocol.TX_DESCRIPTION),
+            json.getLong(BankProtocol.TX_AMOUNT)
         );
     }
 

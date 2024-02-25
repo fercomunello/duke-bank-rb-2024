@@ -1,19 +1,19 @@
 package com.github.bank.duke.business.entity;
 
 import com.github.bank.duke.business.control.BankProtocol;
-import com.github.bank.duke.vertx.http.media.Json;
+import com.github.bank.duke.vertx.web.Media;
 import io.vertx.core.json.JsonObject;
 
 import java.util.LinkedHashMap;
 
 public record BankTransactionState(BankAccount account,
                                    TransactionType type,
-                                   long amount) implements Json {
+                                   long amount) implements Media<JsonObject> {
 
     @Override
-    public JsonObject asJson() {
+    public JsonObject serialize() {
         return new JsonObject(new LinkedHashMap<>(2))
-            .put(BankProtocol.CREDIT_LIMIT, this.account.creditLimit())
-            .put(BankProtocol.BALANCE, this.account.balance());
+            .put(BankProtocol.TX_CREDIT_LIMIT, this.account.creditLimit())
+            .put(BankProtocol.TX_BALANCE, this.account.balance());
     }
 }

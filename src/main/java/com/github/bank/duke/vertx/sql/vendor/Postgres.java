@@ -1,6 +1,6 @@
 package com.github.bank.duke.vertx.sql.vendor;
 
-import com.github.bank.duke.vertx.sql.SQLConnection;
+import com.github.bank.duke.vertx.sql.SqlConnection;
 import com.github.bank.duke.vertx.sql.Database;
 import io.quarkus.arc.Unremovable;
 import io.smallrye.mutiny.Uni;
@@ -20,16 +20,16 @@ public final class Postgres implements Database {
     PgPool pool;
 
     @Override
-    public <T> Uni<T> withTransaction(final Function<SQLConnection, Uni<T>> function) {
+    public <T> Uni<T> withTransaction(final Function<SqlConnection, Uni<T>> function) {
         return this.pool.withTransaction(TransactionPropagation.CONTEXT,
-            delegate -> function.apply(new SQLConnection(delegate))
+            delegate -> function.apply(new SqlConnection(delegate))
         );
     }
 
     @Override
-    public <T> Uni<T> withSession(final Function<SQLConnection, Uni<T>> function) {
+    public <T> Uni<T> withSession(final Function<SqlConnection, Uni<T>> function) {
         return this.pool.withConnection(delegate ->
-            function.apply(new SQLConnection(delegate))
+            function.apply(new SqlConnection(delegate))
         );
     }
 }

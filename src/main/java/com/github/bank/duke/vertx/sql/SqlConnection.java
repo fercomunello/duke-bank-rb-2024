@@ -8,9 +8,9 @@ import io.vertx.sqlclient.Tuple;
 
 import java.util.Optional;
 
-public final class SQLConnection extends io.vertx.mutiny.sqlclient.SqlConnection {
+public final class SqlConnection extends io.vertx.mutiny.sqlclient.SqlConnection {
 
-    public SQLConnection(final io.vertx.mutiny.sqlclient.SqlConnection wrapper) {
+    public SqlConnection(final io.vertx.mutiny.sqlclient.SqlConnection wrapper) {
         super(wrapper.getDelegate());
     }
 
