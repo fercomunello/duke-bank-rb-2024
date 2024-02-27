@@ -11,7 +11,7 @@ services:
       - POSTGRES_DB=rinhadb
       - POSTGRES_USER=duke
       - POSTGRES_PASSWORD=duke
-    command: postgres -c shared_preload_libraries='pg_stat_statements' -c 'fsync=off' -c 'synchronous_commit=off' -c 'checkpoint_timeout=1d' -c 'full_page_writes=false'
+    command: postgres -c shared_preload_libraries='pg_stat_statements'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
