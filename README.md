@@ -12,32 +12,30 @@ $$$$$$$  |\$$$$$$  |$$ | \$$\ \$$$$$$$\       $$$$$$$  |\$$$$$$$ |$$ |  $$ |$$ |
 ## Quarkus
 This project uses [Quarkus](https://quarkus.io), the Supersonic Subatomic Java Framework.
 
-## Running the application in dev mode
-
-You can run your application in dev mode that enables live coding using:
-```shell script
-./mvnw clean compile quarkus:dev
-```
-
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/q/dev/.
-
-```shell script
-./mvnw clean compile quarkus:dev
-```
 
 ## Starting PostgreSQL
 
 **Recommended:** To create the bank schema, run this interactive bash script to be able to reset and 
 restart the container at runtime.
 ```shell script
+# Give executable permission and run the shell script
 chmod +x postgres-local.sh && ./postgres-local.sh
+# Start Quarkus dev-mode for live coding 
+./mvnw clean compile quarkus:dev
 ```
 
-**Alternative**: You could also run docker-compose directly and set the app to regenerate the 
-database schema on every reload.
+**Alternative**: You could also run docker-compose directly.
 ```shell script
-docker-compose -f postgres-local.yaml up --detach && \
+# Start the container
+docker-compose -f postgres-local.yaml up --detach
+# Set the app to regenerate the database schema on every reload
 ./mvnw clean compile quarkus:dev -Dquarkus.args=regenerate-bank-schema
+```
+
+Or you could let Dev Services starts the database container automatically via Testcontainers.
+```shell script
+mvn clean compile quarkus:dev -Dquarkus.args=regenerate-bank-schema -Dquarkus.datasource.devservices.enabled=true
 ```
 
 ## Packaging and running the application
