@@ -24,7 +24,7 @@ final class BankTransactionTest {
     @Test
     @RunOnVertxContext
     @DisplayName("Perform Credit Transaction (C)")
-    public void testPerformCreditTx(final UniAsserter asserter) {
+    public void testPerformCreditTransaction(final UniAsserter asserter) {
         final long amount = (1_000L * 100);
         final var account = new BankAccount(0, 0);
 
@@ -49,7 +49,7 @@ final class BankTransactionTest {
     @Test
     @RunOnVertxContext
     @DisplayName("Perform Credit (C) + Debit (D) Transaction")
-    public void testPerformDebitTx(final UniAsserter asserter) {
+    public void testPerformCreditPlusDebitTransactions(final UniAsserter asserter) {
         final long firstAmount = (1_700L * 100),
                    secondAmount = (60L * 100);
 
