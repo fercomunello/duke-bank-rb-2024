@@ -11,12 +11,6 @@ public final class BankProtocol {
         BANK_TRANSACTIONS_URI = "/clientes/:id/transacoes"
     ;
 
-    // Transaction Types / Symbols
-    public static final char
-        CREDIT_SYMBOL = 'c',
-        DEBIT_SYMBOL = 'd'
-    ;
-
     // Payload Fields
     public static final String
         TX_CREDIT_LIMIT = "limite",

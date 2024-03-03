@@ -3,6 +3,7 @@ package com.github.bank.duke.business.boundary;
 import com.github.bank.duke.BankSchema;
 import com.github.bank.duke.business.control.Bank;
 import com.github.bank.duke.business.entity.BankAccount;
+import com.github.bank.duke.business.entity.TransactionType;
 import com.github.bank.duke.vertx.web.HttpStatus;
 import com.github.bank.duke.vertx.web.Media;
 import io.quarkus.test.junit.QuarkusTest;
@@ -35,7 +36,7 @@ final class BankTransactionRouteTest {
     @Test
     @RunOnVertxContext(runOnEventLoop = false)
     @DisplayName("HTTP POST -> 200: Credit Transaction")
-    public void testPostCreditTransaction() {
+    void testPostCreditTransaction() {
         final var accountId = createAccount(0, 0);
 
         given()
@@ -43,7 +44,7 @@ final class BankTransactionRouteTest {
             .body(STR."""
                 {
                   "\{TX_AMOUNT}": \{(1_000 * 100)},
-                  "\{TX_TYPE}": "\{CREDIT_SYMBOL}",
+                  "\{TX_TYPE}": "\{TransactionType.CREDIT.symbol()}",
                   "\{TX_DESCRIPTION}": "++☕☕"
                 }
                 """)
@@ -56,7 +57,7 @@ final class BankTransactionRouteTest {
     @Test
     @RunOnVertxContext(runOnEventLoop = false)
     @DisplayName("HTTP POST -> 200: Debit Transaction")
-    public void testPostDebitTransaction() {
+    void testPostDebitTransaction() {
         final var accountId = createAccount(20_000 * 100, 2_000 * 100);
 
         given()
@@ -64,7 +65,7 @@ final class BankTransactionRouteTest {
             .body(STR."""
                 {
                   "\{TX_AMOUNT}": \{(12_000 * 100)},
-                  "\{TX_TYPE}": "\{DEBIT_SYMBOL}",
+                  "\{TX_TYPE}": "\{TransactionType.DEBIT.symbol()}",
                   "\{TX_DESCRIPTION}": "--☕"
                 }
                 """)
@@ -77,7 +78,7 @@ final class BankTransactionRouteTest {
     @Test
     @RunOnVertxContext(runOnEventLoop = false)
     @DisplayName("HTTP POST -> 422: Debit Transaction that exceeds account credit limit")
-    public void testPostDebitTransactionWithoutCreditLimit() {
+    void testPostDebitTransactionWithoutCreditLimit() {
         final var accountId = createAccount(30_000 * 100, -(30_000 * 100));
 
         given()
@@ -85,7 +86,7 @@ final class BankTransactionRouteTest {
             .body(STR."""
                 {
                   "\{TX_AMOUNT}": \{(2_000 * 100)},
-                  "\{TX_TYPE}": "\{DEBIT_SYMBOL}",
+                  "\{TX_TYPE}": "\{TransactionType.DEBIT.symbol()}",
                   "\{TX_DESCRIPTION}": "--☕"
                 }
                 """)

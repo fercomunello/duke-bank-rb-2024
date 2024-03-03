@@ -6,7 +6,7 @@ public sealed interface BankTransactionResult {
 
     record TransactionPerformed(BankTransactionState transactionState) implements BankTransactionResult {}
     record AccountCreditExceeded(BankTransactionState transactionState) implements BankTransactionResult {}
-    record TransactionFailure() implements BankTransactionResult {}
+    record TransactionFailed(BankTransactionState transactionState) implements BankTransactionResult {}
 
-    default BankTransactionState transactionState() { return null; }
+    BankTransactionState transactionState();
 }

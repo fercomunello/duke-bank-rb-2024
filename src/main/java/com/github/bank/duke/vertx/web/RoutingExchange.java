@@ -15,16 +15,15 @@ public final class RoutingExchange {
 
     public <T> Uni<String> end(final Uni<Response<T>> responseUni) {
         return responseUni.onItem().transform(this::responseWithContent)
-            .onItem().transform(content ->
-                content.map(Media::serialize)
-                    .map(Object::toString)
-                    .orElse(Media.NO_CONTENT)
+            .onItem().transform(optional ->
+                optional.map(entity -> entity instanceof Media<?> media ? media.serialize() : entity)
+                    .orElse(Media.NO_CONTENT).toString()
             );
     }
 
-    private <T> Optional<Media<T>> responseWithContent(final Response<T> response) {
-        final Media<T> media = prepareResponse(response).entity();
-        return Optional.ofNullable(media);
+    private <T> Optional<T> responseWithContent(final Response<T> response) {
+        final T entity = prepareResponse(response).entity();
+        return Optional.ofNullable(entity);
     }
 
     private <T> Response<T> prepareResponse(final Response<T> response) {

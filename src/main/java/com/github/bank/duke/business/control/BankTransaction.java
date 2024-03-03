@@ -5,6 +5,11 @@ import com.github.bank.duke.business.entity.BankTransactionState;
 import com.github.bank.duke.business.entity.TransactionType;
 import com.github.bank.duke.vertx.sql.Dialect;
 import com.github.bank.duke.vertx.sql.StoredFunction;
+import com.github.bank.duke.vertx.web.CachedEntry;
+import com.github.bank.duke.vertx.web.validation.constraints.NotNull;
+import com.github.bank.duke.vertx.web.validation.constraints.PositiveInt;
+import com.github.bank.duke.vertx.web.validation.constraints.TextLengthMax;
+import com.github.bank.duke.vertx.web.validation.Validations;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.impl.ArrayTuple;
@@ -25,7 +30,7 @@ public final class BankTransaction implements StoredFunction<BankTransactionResu
         FROM process_bank_transaction(
             $1::BIGINT, 
             $2::TXTYPE, 
-            $3::INT, 
+            $3::BIGINT, 
             $4::VARCHAR)""";
 
     private static final int POS_TX_PERFORMED = 0,
@@ -33,31 +38,39 @@ public final class BankTransaction implements StoredFunction<BankTransactionResu
 
     private final TransactionType type;
     private final String description;
-    private final Long accountId;
-    private final Long amount;
+    private final long accountId;
+    private final long amount;
 
-    public BankTransaction(final Long accountId, final JsonObject json) {
-        this(accountId, TransactionType.of(json.getString(BankProtocol.TX_TYPE)),
-            json.getString(BankProtocol.TX_DESCRIPTION),
-            json.getLong(BankProtocol.TX_AMOUNT)
-        );
-    }
-
-    public BankTransaction(final Long accountId,
-                           final TransactionType type,
+    public BankTransaction(final TransactionType type,
                            final String description,
-                           final Long amount) {
+                           final long accountId,
+                           final long amount) {
         this.type = type;
         this.description = description;
         this.accountId = accountId;
         this.amount = amount;
     }
 
+    public static Uni<BankTransaction> of(final Long accountId, final JsonObject json) {
+        final var type = TransactionType.of(json.getString(BankProtocol.TX_TYPE));
+        final var description = json.getString(BankProtocol.TX_DESCRIPTION);
+        final var amount = json.getNumber(BankProtocol.TX_AMOUNT);
+
+        return new Validations(
+                 new NotNull(accountId, Entry.ACCOUNT_ID),
+                 new NotNull(type, Entry.TRANSACTION_TYPE, TransactionType.CONSTRAINT),
+                 new PositiveInt(amount, Entry.AMOUNT),
+                 new TextLengthMax(description, 10, Entry.DESCRIPTION))
+            .eval(BankTransaction.class, () ->
+                new BankTransaction(type, description, accountId, amount.longValue())
+            );
+    }
+
     @Override
-    public Uni<BankTransactionResult> execute() {
+    public Uni<BankTransactionResult> perform() {
         final var tuple = new ArrayTuple(4);
         tuple.addLong(this.accountId);
-        tuple.addString(this.type.symbol);
+        tuple.addString(this.type.symbol());
         tuple.addLong(this.amount);
         tuple.addString(this.description);
 
@@ -67,17 +80,19 @@ public final class BankTransaction implements StoredFunction<BankTransactionResu
                     out.getLong(POS_CREDIT_LIMIT),
                     out.getLong(POS_BALANCE)
                 );
-
-                final var transactionState = new BankTransactionState(account, this.type, this.amount);
-
+                final var txState = new BankTransactionState(account, this.type, this.amount);
                 if (out.getBoolean(POS_TX_PERFORMED)) {
-                    return new TransactionPerformed(transactionState);
+                    return new TransactionPerformed(txState);
                 } else if (account.isCreditLimitExceeded()) {
-                    return new AccountCreditExceeded(transactionState);
+                    return new AccountCreditExceeded(txState);
                 } else {
-                    return new TransactionFailure();
+                    return new TransactionFailed(txState);
                 }
             }).onItem().transform(Optional::get)
         );
+    }
+
+    public enum Entry implements CachedEntry {
+        ACCOUNT_ID, TRANSACTION_TYPE, AMOUNT, DESCRIPTION
     }
 }

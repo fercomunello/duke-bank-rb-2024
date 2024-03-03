@@ -1,5 +1,6 @@
 package com.github.bank.duke.business.control;
 
+import com.github.bank.duke.BankSchema;
 import com.github.bank.duke.business.entity.BankAccount;
 import com.github.bank.duke.business.entity.BankTransactionState;
 import com.github.bank.duke.business.entity.TransactionType;
@@ -8,6 +9,7 @@ import io.quarkus.test.vertx.RunOnVertxContext;
 import io.quarkus.test.vertx.UniAsserter;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,10 +23,18 @@ final class BankTransactionTest {
     @Inject
     Bank bank;
 
+    @Inject
+    BankSchema bankSchema;
+
+    @AfterEach
+    void afterEach() {
+        this.bankSchema.regenerate();
+    }
+
     @Test
     @RunOnVertxContext
     @DisplayName("Perform Credit Transaction (C)")
-    public void testPerformCreditTransaction(final UniAsserter asserter) {
+    void testPerformCreditTransaction(final UniAsserter asserter) {
         final long amount = (1_000L * 100);
         final var account = new BankAccount(0, 0);
 
@@ -49,7 +59,7 @@ final class BankTransactionTest {
     @Test
     @RunOnVertxContext
     @DisplayName("Perform Credit (C) + Debit (D) Transaction")
-    public void testPerformCreditPlusDebitTransactions(final UniAsserter asserter) {
+    void testPerformCreditPlusDebitTransactions(final UniAsserter asserter) {
         final long firstAmount = (1_700L * 100),
                    secondAmount = (60L * 100);
 
@@ -95,7 +105,7 @@ final class BankTransactionTest {
     @Test
     @RunOnVertxContext
     @DisplayName("Reject Debit (D) Transactions that exceeds account credit limit")
-    public void testCreditLimitExceeded(final UniAsserter asserter) {
+    void testCreditLimitExceeded(final UniAsserter asserter) {
         final long amount = (2000 * 100);
         final var account = new BankAccount(1000 * 100, 0);
 
@@ -123,8 +133,8 @@ final class BankTransactionTest {
         final TransactionType type, final Long accountId, final long amount,
         final String ... description)
     {
-        return new BankTransaction(accountId, type, (description.length > 0
-            ? String.join(" ", description) : null), amount)
-            .execute();
+        return new BankTransaction(type, (description.length > 0
+            ? String.join(" ", description) : null), accountId, amount)
+            .perform();
     }
 }

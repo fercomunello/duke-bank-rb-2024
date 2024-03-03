@@ -5,10 +5,9 @@ import io.smallrye.mutiny.Uni;
 
 public interface StoredFunction<O> {
 
-    Uni<O> execute();
+    Uni<O> perform();
 
     default <T> Uni<T> withTransaction(final UniTask<T> task) {
-        return Database.instance()
-            .withTransaction(task::execute);
+        return Database.instance().withTransaction(task::execute);
     }
 }

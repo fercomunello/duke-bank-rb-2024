@@ -16,7 +16,7 @@ CREATE TYPE TXTYPE AS ENUM ('c', 'd');
 
 CREATE TABLE bank_accounts (
     id                BIGSERIAL,
-    credit_limit      INT NOT NULL DEFAULT 0 CHECK ( credit_limit >= 0 ),
+    credit_limit      BIGINT NOT NULL DEFAULT 0 CHECK ( credit_limit >= 0 ),
     balance           BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (id)
 );
@@ -25,7 +25,7 @@ CREATE TABLE bank_transactions (
     id              BIGSERIAL,
     account_id      BIGINT NOT NULL,
     type            TXTYPE NOT NULL,
-    amount          INT NOT NULL CHECK ( amount > 0 ),
+    amount          BIGINT NOT NULL CHECK ( amount > 0 ),
     description     VARCHAR(10) CHECK ( description IS NULL OR length(description) <= 10 ),
     issued_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (id),
@@ -38,14 +38,14 @@ CREATE INDEX idx_tx_issued_filter ON bank_transactions (issued_at DESC);
 CREATE OR REPLACE FUNCTION process_bank_transaction(
     p_account_id BIGINT,
     p_type TXTYPE,
-    p_amount BIGINT DEFAULT 0,
-    p_description VARCHAR(10) DEFAULT NULL
+    p_amount BIGINT,
+    p_description VARCHAR(10)
 )
 RETURNS TABLE (o_tx_performed BOOL,
                o_credit_limit INT,
                o_balance BIGINT) AS $$
 DECLARE
-    v_credit_limit INT NOT NULL DEFAULT 0;
+    v_credit_limit BIGINT NOT NULL DEFAULT 0;
     v_balance      BIGINT NOT NULL DEFAULT 0;
     v_lock_account BOOLEAN DEFAULT FALSE;
 BEGIN
