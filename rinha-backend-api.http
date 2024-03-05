@@ -1,0 +1,37 @@
+### Perform Credit TX
+POST http://localhost:8080/clientes/1/transacoes
+Content-Type: application/json
+
+{
+  "valor": 100000,
+  "tipo": "c",
+  "descricao": "#Credit TX"
+}
+
+### Perform Debit TX
+POST http://localhost:8080/clientes/1/transacoes
+Content-Type: application/json
+
+{
+  "valor": 70000,
+  "tipo": "d",
+  "descricao": "#Debit TX"
+}
+
+### Reject Debit TX that exceeds account credit limit
+POST http://localhost:8080/clientes/1/transacoes
+Content-Type: application/json
+
+{
+  "valor": 100000000,
+  "tipo": "d",
+  "descricao": "#Debit TX"
+}
+
+### Get Account Statement Summary
+GET http://localhost:8080/clientes/1/extrato
+Content-Type: application/json
+
+### Account Not Found
+GET http://localhost:8080/clientes/6/extrato
+Content-Type: application/json

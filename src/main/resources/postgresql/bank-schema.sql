@@ -27,7 +27,7 @@ CREATE TABLE bank_transactions (
     type            TXTYPE NOT NULL,
     amount          BIGINT NOT NULL CHECK ( amount > 0 ),
     description     VARCHAR(10) CHECK ( description IS NULL OR length(description) <= 10 ),
-    issued_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    issued_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     PRIMARY KEY (id),
     FOREIGN KEY (account_id) REFERENCES bank_accounts (id)
 );

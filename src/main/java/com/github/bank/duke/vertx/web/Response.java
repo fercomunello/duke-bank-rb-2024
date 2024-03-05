@@ -6,10 +6,21 @@ import io.smallrye.mutiny.Uni;
 import org.jetbrains.annotations.Nullable;
 
 public sealed interface Response<T>
-    permits Response.BadRequest, Response.Error, Response.Ok, Response.UnprocessableEntity {
+    permits Response.BadRequest, Response.Error, Response.NotFound, Response.Ok, Response.UnprocessableEntity {
 
     record Ok<T>(T entity) implements Response<T> {
         public HttpStatus status() { return HttpStatus.OK; }
+    }
+
+    record BadRequest<T>() implements Response<T> {
+        public HttpStatus status() { return HttpStatus.BAD_REQUEST; }
+    }
+
+    record NotFound<T>() implements Response<T> {
+        @Override
+        public HttpStatus status() {
+            return HttpStatus.NOT_FOUND;
+        }
     }
 
     record UnprocessableEntity<T>(T entity) implements Response<T> {
@@ -17,10 +28,6 @@ public sealed interface Response<T>
             this(null);
         }
         public HttpStatus status() { return HttpStatus.UNPROCESSABLE_CONTENT; }
-    }
-
-    record BadRequest<T>() implements Response<T> {
-        public HttpStatus status() { return HttpStatus.BAD_REQUEST; }
     }
 
     record Error<T>() implements Response<T> {

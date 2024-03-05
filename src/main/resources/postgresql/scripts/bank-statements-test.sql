@@ -32,15 +32,15 @@ SELECT * FROM bank_transactions;
 -- * Largest node (rows): 11 rows | Costliest node: 41,190.41
 EXPLAIN (ANALYZE, COSTS, VERBOSE, FORMAT JSON, BUFFERS)
 WITH account_totals AS (
-    SELECT c.balance,
-           c.credit_limit
-    FROM bank_accounts c
-    WHERE (c.id = :acc_id) -- BITMAP INDEX SCAN
+    SELECT a.balance,
+           a.credit_limit
+    FROM bank_accounts a
+    WHERE (a.id = :acc_id) -- BITMAP INDEX SCAN
 )
 (SELECT t.balance,
         t.credit_limit,
-        NULL AS type,
         NULL AS amount,
+        NULL AS type,
         NULL AS description,
         NULL AS issued_at
  FROM account_totals t)
@@ -48,8 +48,8 @@ UNION ALL
 (SELECT
      NULL,
      NULL,
-     tx.type,
      tx.amount,
+     tx.type,
      tx.description,
      tx.issued_at
  FROM bank_transactions tx

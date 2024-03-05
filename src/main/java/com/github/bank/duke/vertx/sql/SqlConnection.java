@@ -30,4 +30,13 @@ public final class SqlConnection extends io.vertx.mutiny.sqlclient.SqlConnection
                 }
             });
     }
+
+    public Uni<RowIterator<Row>> select(final String sql, final Tuple tuple) {
+        return this.preparedQuery(sql)
+            .execute(new io.vertx.mutiny.sqlclient.Tuple(tuple))
+            .onItem().transform(rows -> {
+                final RowIterator<Row> iterator = rows.iterator();
+                return iterator;
+            });
+    }
 }

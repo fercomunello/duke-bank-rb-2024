@@ -22,8 +22,8 @@ public final class BankAccount implements Media<JsonObject> {
     public JsonObject serialize() {
         return this.json == null ?
             this.json = (new JsonObject(new LinkedHashMap<>(2))
-                .put(BankProtocol.TX_CREDIT_LIMIT, this.creditLimit)
-                .put(BankProtocol.TX_BALANCE, this.balance))
+                .put(BankProtocol.CREDIT_LIMIT, this.creditLimit)
+                .put(BankProtocol.BALANCE, this.balance))
             : this.json;
     }
 
