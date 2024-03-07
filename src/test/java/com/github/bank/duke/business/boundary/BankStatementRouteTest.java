@@ -1,6 +1,6 @@
 package com.github.bank.duke.business.boundary;
 
-import com.github.bank.duke.business.Bank;
+import com.github.bank.duke.Bank;
 import com.github.bank.duke.business.BankTest;
 import com.github.bank.duke.business.entity.TransactionType;
 import com.github.bank.duke.vertx.web.HttpStatus;
@@ -31,7 +31,8 @@ final class BankStatementRouteTest extends BankTest {
         final long accountId = this.bank.createAccount(100_000 * 100, 0)
             .await().indefinitely();
 
-        this.bank.populateTransactions(accountId, 10);
+        this.bank.populateTransactions(accountId, 10)
+            .await().indefinitely();
 
         given()
             .contentType(ContentType.JSON)

@@ -60,7 +60,7 @@ public final class BankTransaction implements StoredFunction<BankTransactionResu
                  new NotNull(accountId, Entry.ACCOUNT_ID),
                  new NotNull(type, Entry.TRANSACTION_TYPE, TransactionType.CONSTRAINT),
                  new PositiveInt(amount, Entry.AMOUNT),
-                 new TextLengthMax(description, 10, Entry.DESCRIPTION))
+                 new TextLengthMax(description, 10, Entry.DESCRIPTION, true))
             .eval(BankTransaction.class, () ->
                 new BankTransaction(type, description, accountId, amount.longValue())
             );

@@ -9,7 +9,9 @@ public interface Database {
 
     <T> Uni<T> withTransaction(final Function<SqlConnection, Uni<T>> function);
 
-    <T> Uni<T> withSession(final Function<SqlConnection, Uni<T>> function);
+    <T> Uni<T> withConnection(final Function<SqlConnection, Uni<T>> function);
+
+    Uni<Void> execute(final String sql);
 
     static Database instance() {
         return CDI.current()

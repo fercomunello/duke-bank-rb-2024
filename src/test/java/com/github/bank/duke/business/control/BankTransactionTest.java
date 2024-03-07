@@ -1,6 +1,6 @@
 package com.github.bank.duke.business.control;
 
-import com.github.bank.duke.business.Bank;
+import com.github.bank.duke.Bank;
 import com.github.bank.duke.business.BankTest;
 import com.github.bank.duke.business.entity.BankAccount;
 import com.github.bank.duke.business.entity.BankTransactionState;

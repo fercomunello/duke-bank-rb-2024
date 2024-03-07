@@ -1,11 +1,7 @@
 package com.github.bank.duke;
 
-import io.quarkus.runtime.LaunchMode;
-import io.quarkus.runtime.StartupEvent;
-import io.quarkus.runtime.annotations.CommandLineArguments;
-import io.vertx.mutiny.pgclient.PgPool;
+import com.github.bank.duke.vertx.sql.Database;
 import io.vertx.sqlclient.DatabaseException;
-import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jboss.logging.Logger;
@@ -28,38 +24,12 @@ import java.net.URL;
 public final class BankSchema {
 
     private static final Logger LOG = Logger.getLogger(BankSchema.class);
-
-    private static final String SQL_SCHEMA_PATH = "postgresql/bank-schema.sql",
-        REGENERATE_DB_SCHEMA = "regenerate-bank-schema";
+    private static final String SQL_SCHEMA_PATH = "postgresql/bank-schema.sql";
 
     @Inject
-    PgPool pool;
-
-    @Inject
-    @CommandLineArguments
-    String[] arguments;
-
-    public void onStartup(@Observes final StartupEvent event) {
-        final var environment = LaunchMode.current();
-        if (environment != LaunchMode.DEVELOPMENT && environment != LaunchMode.TEST) {
-            return;
-        }
-        regenerate();
-    }
+    Database database;
 
     public void regenerate() {
-        final var environment = LaunchMode.current();
-        if (environment == LaunchMode.NORMAL) {
-            LOG.warn("Unable to regenerate database schema, this is not supported in this profile.");
-        }
-        if (environment == LaunchMode.DEVELOPMENT) {
-            for (final var arg : this.arguments) {
-                if (!arg.equals(REGENERATE_DB_SCHEMA)) {
-                    return;
-                }
-            }
-        }
-
         final URL bankSchemaResource = Thread.currentThread()
             .getContextClassLoader().getResource(SQL_SCHEMA_PATH);
 
@@ -78,7 +48,7 @@ public final class BankSchema {
 
         if (bytes.length > 0) {
             final var sql = new String(bytes);
-            this.pool.query(sql).execute()
+            this.database.execute(sql)
                 .invoke(() -> LOG.info("Database schema regenerated succesfully."))
                 .onFailure().invoke(throwable -> {
                     if (throwable instanceof DatabaseException ex) {

@@ -26,7 +26,7 @@ CREATE TABLE bank_transactions (
     account_id      BIGINT NOT NULL,
     type            TXTYPE NOT NULL,
     amount          BIGINT NOT NULL CHECK ( amount > 0 ),
-    description     VARCHAR(10) CHECK ( description IS NULL OR length(description) <= 10 ),
+    description     VARCHAR(10) NOT NULL,
     issued_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     PRIMARY KEY (id),
     FOREIGN KEY (account_id) REFERENCES bank_accounts (id)
@@ -47,10 +47,7 @@ RETURNS TABLE (o_tx_performed BOOL,
 DECLARE
     v_credit_limit BIGINT NOT NULL DEFAULT 0;
     v_balance      BIGINT NOT NULL DEFAULT 0;
-    v_lock_account BOOLEAN DEFAULT FALSE;
 BEGIN
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
-
     IF (p_account_id IS NULL OR p_type IS NULL OR p_amount <= 0) THEN
         RAISE check_violation USING MESSAGE =
           'TX must be associated with an account, it must has a type (C-Credit | D-Debit) and an amount.',
@@ -58,29 +55,22 @@ BEGIN
     END IF;
 
     IF (p_type = 'c'::TXTYPE) THEN
-        UPDATE bank_accounts SET balance = (balance + p_amount)
-        WHERE (id = p_account_id)
+        UPDATE bank_accounts SET balance = (balance + p_amount) WHERE (id = p_account_id)
         RETURNING credit_limit, balance INTO v_credit_limit, v_balance;
 
         o_tx_performed := TRUE;
-    ELSE
-        v_lock_account := TRUE;
-    END IF;
-
-    IF (v_lock_account) THEN
+    ELSIF (p_type = 'd'::TXTYPE) THEN
         SELECT c.credit_limit,
                c.balance
         INTO v_credit_limit,
-             v_balance
+            v_balance
         FROM bank_accounts c
         WHERE (c.id = p_account_id)
         FOR UPDATE;
 
-        IF (FOUND AND p_type = 'd'::TXTYPE) THEN
+        IF (FOUND) THEN
             v_balance := (v_balance - p_amount);
             IF (v_balance < -v_credit_limit) THEN
-                /* Debit transaction rejected, insufficient
-                   credit creditLimit for this account. */
                 o_tx_performed := FALSE;
             ELSE
                 UPDATE bank_accounts account SET balance = v_balance
@@ -114,7 +104,7 @@ REVOKE DELETE ON bank_transactions FROM duke;
 INSERT INTO bank_accounts
        (credit_limit, balance)
 VALUES (1000 * 100, 0),   -- 1 | $1,000.00 == 100000
-       (80000 * 100, 0),  -- 2 | $80,000.00 == 80000
+       (800 * 100, 0),  -- 2 | $80,000.00 == 80000
        (10000 * 100, 0),  -- 3 | $10,000.00 == 1000000
        (100000 * 100, 0), -- 4 | $100,000.00 == 10000000
        (5000 * 100, 0);   -- 5 | $5,000.00 == 500000

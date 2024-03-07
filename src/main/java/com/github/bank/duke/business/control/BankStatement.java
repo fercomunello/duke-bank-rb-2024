@@ -51,8 +51,8 @@ public final class BankStatement {
     Database database;
 
     public Uni<JsonObject> aggregateBankStatements(final Long accountId) {
-        return this.database.withSession(session ->
-            session.select(BANK_STATEMENT_QUERY, Tuple.of(accountId, accountId))).map(iterator -> {
+        return this.database.withConnection(conn ->
+            conn.select(BANK_STATEMENT_QUERY, Tuple.of(accountId, accountId))).map(iterator -> {
                 if (!iterator.hasNext()) return EMPTY_JSON;
 
                 Row row = iterator.next();

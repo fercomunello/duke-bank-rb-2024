@@ -1,4 +1,4 @@
-package com.github.bank.duke.business;
+package com.github.bank.duke;
 
 import com.github.bank.duke.business.control.BankTransaction;
 import com.github.bank.duke.business.control.BankTransactionResult;
@@ -38,8 +38,8 @@ public final class Bank {
         });
     }
 
-    public void populateTransactions(final long accountId, final int iterations) {
-        Multi.createFrom().range(1, iterations + 1)
+    public Uni<Void> populateTransactions(final long accountId, final int iterations) {
+        return Multi.createFrom().range(1, iterations + 1)
             .onItem().transformToUni(sequence -> {
                 final var random = new Random();
                 final var type = sequence % 2 == 0 ? TransactionType.CREDIT : TransactionType.DEBIT;
@@ -49,13 +49,12 @@ public final class Bank {
                     ? (random.nextLong((10_000 * 100) - 100 + 1) + 100)
                     : (random.nextLong((1_500 * 100) - 100 + 1) + 100), description);
             }).concatenate()
-            .onItem().ignoreAsUni()
-            .await().indefinitely();
+            .onItem().ignoreAsUni();
     }
 
     public Uni<BankTransactionResult> performTransaction(final TransactionType type, final Long accountId,
                                                          final long amount, final String ... args) {
-        final var description = (args.length > 0 ? String.join(" ", args) : null);
+        final var description = (args.length > 0 ? String.join(" ", args) : "# TX");
         return new BankTransaction(type, description, accountId, amount).perform();
     }
 }

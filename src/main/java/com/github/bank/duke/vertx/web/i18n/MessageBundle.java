@@ -11,7 +11,7 @@ import java.util.ResourceBundle;
 
 public interface MessageBundle {
 
-    Locale LOCALE_EN_US = Locale.ENGLISH;
+    Locale LOCALE_EN_US = new Locale.Builder().setLanguage("en").setRegion("US").build();
     Locale LOCALE_PT_BR = new Locale.Builder().setLanguage("pt").setRegion("BR").build();
 
     ResourceBundle defaultResourceBundle();

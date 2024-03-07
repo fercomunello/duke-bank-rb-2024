@@ -21,15 +21,20 @@ public final class Postgres implements Database {
 
     @Override
     public <T> Uni<T> withTransaction(final Function<SqlConnection, Uni<T>> function) {
-        return this.pool.withTransaction(TransactionPropagation.CONTEXT,
+        return this.pool.withTransaction(TransactionPropagation.NONE,
             delegate -> function.apply(new SqlConnection(delegate))
         );
     }
 
     @Override
-    public <T> Uni<T> withSession(final Function<SqlConnection, Uni<T>> function) {
+    public <T> Uni<T> withConnection(final Function<SqlConnection, Uni<T>> function) {
         return this.pool.withConnection(delegate ->
             function.apply(new SqlConnection(delegate))
         );
+    }
+
+    @Override
+    public Uni<Void> execute(final String sql) {
+        return this.pool.withConnection(connection -> connection.query(sql).execute()).replaceWithVoid();
     }
 }
