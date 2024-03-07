@@ -16,12 +16,16 @@ final class BankStartup {
     BankSchema schema;
 
     @Inject
+    BankWarmup warmup;
+
+    @Inject
     @CommandLineArguments
     String[] arguments;
 
     public void onStartup(@Observes final StartupEvent event) {
         final var environment = LaunchMode.current();
         switch (environment) {
+            case NORMAL -> this.warmup.await();
             case DEVELOPMENT, TEST -> {
                 for (final var arg : this.arguments) {
                     if (arg.equals("regenerate-bank-schema")) {
