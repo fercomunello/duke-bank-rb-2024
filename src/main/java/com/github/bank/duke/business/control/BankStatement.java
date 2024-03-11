@@ -13,6 +13,7 @@ import org.intellij.lang.annotations.Language;
 
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
+import java.util.function.BiFunction;
 
 import static com.github.bank.duke.business.control.BankProtocol.*;
 
@@ -20,66 +21,73 @@ import static com.github.bank.duke.business.control.BankProtocol.*;
 public final class BankStatement {
 
     @Language(value = Dialect.SQL)
-    private static final String BANK_STATEMENT_QUERY = """
-        WITH account_totals AS (
-            SELECT a.balance,
-                   a.credit_limit
-            FROM bank_accounts a
-            WHERE (a.id = $1)
-        )
-        (SELECT t.balance,
-                t.credit_limit,
-                NULL AS amount,
-                NULL AS type,
-                NULL AS description,
-                NULL AS issued_at
-         FROM account_totals t)
-        UNION ALL
-        (SELECT
-             NULL,
-             NULL,
-             tx.amount,
-             tx.type,
-             tx.description,
-             tx.issued_at
+    private static final String ACCOUNT_STATE_QUERY = """
+        SELECT a.balance,
+               a.credit_limit
+        FROM bank_accounts a
+        WHERE (a.id = $1)""";
+
+    @Language(value = Dialect.SQL)
+    private static final String LAST_TXS_QUERY = """
+        SELECT tx.amount,
+               tx.type,
+               tx.description,
+               tx.issued_at
          FROM bank_transactions tx
-         WHERE (tx.account_id = $2)
+         WHERE (tx.account_id = $1)
          ORDER BY tx.issued_at DESC
-         LIMIT 10)""";
+         LIMIT 10""";
 
     @Inject
     Database database;
 
     public Uni<JsonObject> aggregateBankStatements(final Long accountId) {
-        return this.database.withConnection(conn ->
-            conn.select(BANK_STATEMENT_QUERY, Tuple.of(accountId, accountId))).map(iterator -> {
-                if (!iterator.hasNext()) return EMPTY_JSON;
+        return this.database.withConnection(conn -> {
+            final Uni<Object> accountStateUni = conn.select(ACCOUNT_STATE_QUERY, Tuple.of(accountId))
+                .map(iterator -> {
+                    if (!iterator.hasNext()) return null;
+                    final Row row = iterator.next();
+                    return new JsonObject(new LinkedHashMap<>(3))
+                        .put(TOTAL, row.getLong(0))
+                        .put(STATEMENT_TIME, DATE_TIME_FORMATTER.format(OffsetDateTime.now()))
+                        .put(CREDIT_LIMIT, row.getLong(1));
+                });
 
-                Row row = iterator.next();
-                final JsonObject accountState = new JsonObject(new LinkedHashMap<>(3))
-                    .put(TOTAL, row.getLong(0))
-                    .put(STATEMENT_TIME, DATE_TIME_FORMATTER.format(OffsetDateTime.now()))
-                    .put(CREDIT_LIMIT, row.getLong(1));
+            final Uni<Object> lastTransactionsUni = conn.select(LAST_TXS_QUERY, Tuple.of(accountId))
+                .map(iterator -> {
+                    if (!iterator.hasNext()) return new JsonArray();
 
-                final var lastTransactions = new JsonArray();
-                transactionsAggregator: {
-                    for (;;) {
-                        if (!iterator.hasNext()) {
-                            break transactionsAggregator;
+                    final var lastTransactions = new JsonArray();
+                    transactionsAggregator:
+                    {
+                        Row row;
+                        for (;;) {
+                            if (!iterator.hasNext()) {
+                                break transactionsAggregator;
+                            }
+                            row = iterator.next();
+                            lastTransactions.add(
+                                new JsonObject(new LinkedHashMap<>(4))
+                                    .put(TX_AMOUNT, row.getLong(0))
+                                    .put(TX_TYPE, row.getString(1))
+                                    .put(TX_DESCRIPTION, row.getString(2))
+                                    .put(TX_ISSUED_AT_TIME, DATE_TIME_FORMATTER.format(row.getOffsetDateTime(3)))
+                            );
                         }
-                        row = iterator.next();
-                        lastTransactions.add(
-                            new JsonObject(new LinkedHashMap<>(4))
-                                .put(TX_AMOUNT, row.getLong(2))
-                                .put(TX_TYPE, row.getString(3))
-                                .put(TX_DESCRIPTION, row.getString(4))
-                                .put(TX_ISSUED_AT_TIME, DATE_TIME_FORMATTER.format(row.getOffsetDateTime(5)))
-                        );
                     }
-                }
 
-                return JsonObject.of(BALANCE, accountState,
-                                     LAST_TXS, lastTransactions);
-            });
+                    return lastTransactions;
+                });
+
+                return Uni.combine().all().unis(accountStateUni, lastTransactionsUni)
+                    .with(new BiFunction<>() {
+                        @Override
+                        public JsonObject apply(final Object accountState, final Object lastTransactionsArray) {
+                            if (accountState == null) return EMPTY_JSON;
+                            return JsonObject.of(BALANCE, accountState, LAST_TXS, lastTransactionsArray);
+                        }
+                    });
+            }
+        );
     }
 }

@@ -4,6 +4,7 @@ import com.github.bank.duke.vertx.sql.function.RowMapper;
 import io.smallrye.mutiny.Uni;
 import io.vertx.mutiny.sqlclient.Row;
 import io.vertx.mutiny.sqlclient.RowIterator;
+import io.vertx.mutiny.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
 import java.util.Optional;
@@ -34,9 +35,6 @@ public final class SqlConnection extends io.vertx.mutiny.sqlclient.SqlConnection
     public Uni<RowIterator<Row>> select(final String sql, final Tuple tuple) {
         return this.preparedQuery(sql)
             .execute(new io.vertx.mutiny.sqlclient.Tuple(tuple))
-            .onItem().transform(rows -> {
-                final RowIterator<Row> iterator = rows.iterator();
-                return iterator;
-            });
+            .onItem().transform(RowSet::iterator);
     }
 }

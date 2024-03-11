@@ -2,6 +2,64 @@
 # PL/PGSQL - Tests
 ==================================================================== */
 
+CREATE OR REPLACE FUNCTION process_bank_transaction(
+    p_account_id BIGINT,
+    p_type TXTYPE,
+    p_amount BIGINT,
+    p_description VARCHAR(10)
+)
+    RETURNS TABLE (o_tx_performed BOOL,
+                   o_credit_limit INT,
+                   o_balance BIGINT) AS $$
+DECLARE
+    v_credit_limit BIGINT NOT NULL DEFAULT 0;
+    v_balance      BIGINT NOT NULL DEFAULT 0;
+BEGIN
+    IF (p_account_id IS NULL OR p_type IS NULL OR p_amount <= 0) THEN
+        RAISE check_violation USING MESSAGE =
+                'TX must be associated with an account, it must has a type (C-Credit | D-Debit) and an amount.',
+            HINT = 'Check the validation steps on the application side';
+    END IF;
+
+    IF (p_type = 'c'::TXTYPE) THEN
+        UPDATE bank_accounts SET balance = (balance + p_amount) WHERE (id = p_account_id)
+        RETURNING credit_limit, balance INTO v_credit_limit, v_balance;
+
+        o_tx_performed := TRUE;
+    ELSIF (p_type = 'd'::TXTYPE) THEN
+        SELECT c.credit_limit,
+               c.balance
+        INTO v_credit_limit,
+            v_balance
+        FROM bank_accounts c
+        WHERE (c.id = p_account_id)
+            FOR UPDATE;
+
+        IF (FOUND) THEN
+            v_balance := (v_balance - p_amount);
+            IF (v_balance < -v_credit_limit) THEN
+                o_tx_performed := FALSE;
+            ELSE
+                UPDATE bank_accounts account SET balance = v_balance
+                WHERE (account.id = p_account_id);
+
+                o_tx_performed := TRUE;
+            END IF;
+        END IF;
+    END IF;
+
+    IF (o_tx_performed) THEN
+        INSERT INTO bank_transactions (account_id, type, amount, description)
+        VALUES (p_account_id, p_type, p_amount, p_description);
+    END IF;
+
+    o_credit_limit := v_credit_limit;
+    o_balance := v_balance;
+
+    RETURN NEXT;
+END;
+$$ LANGUAGE plpgsql;
+
 DELETE FROM bank_transactions WHERE account_id IN (1000, 1001);
 DELETE FROM bank_accounts WHERE id IN (1000, 1001);
 

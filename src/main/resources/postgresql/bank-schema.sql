@@ -14,14 +14,14 @@ SET TIME ZONE 'UTC';
 
 CREATE TYPE TXTYPE AS ENUM ('c', 'd');
 
-CREATE TABLE bank_accounts (
+CREATE UNLOGGED TABLE bank_accounts (
     id                BIGSERIAL,
     credit_limit      BIGINT NOT NULL DEFAULT 0 CHECK ( credit_limit >= 0 ),
     balance           BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (id)
 );
 
-CREATE TABLE bank_transactions (
+CREATE UNLOGGED TABLE bank_transactions (
     id              BIGSERIAL,
     account_id      BIGINT NOT NULL,
     type            TXTYPE NOT NULL,
@@ -34,64 +34,6 @@ CREATE TABLE bank_transactions (
 
 CREATE INDEX idx_tx_account_id ON bank_transactions (account_id);
 CREATE INDEX idx_tx_issued_filter ON bank_transactions (issued_at DESC);
-
-CREATE OR REPLACE FUNCTION process_bank_transaction(
-    p_account_id BIGINT,
-    p_type TXTYPE,
-    p_amount BIGINT,
-    p_description VARCHAR(10)
-)
-RETURNS TABLE (o_tx_performed BOOL,
-               o_credit_limit INT,
-               o_balance BIGINT) AS $$
-DECLARE
-    v_credit_limit BIGINT NOT NULL DEFAULT 0;
-    v_balance      BIGINT NOT NULL DEFAULT 0;
-BEGIN
-    IF (p_account_id IS NULL OR p_type IS NULL OR p_amount <= 0) THEN
-        RAISE check_violation USING MESSAGE =
-          'TX must be associated with an account, it must has a type (C-Credit | D-Debit) and an amount.',
-          HINT = 'Check the validation steps on the application side';
-    END IF;
-
-    IF (p_type = 'c'::TXTYPE) THEN
-        UPDATE bank_accounts SET balance = (balance + p_amount) WHERE (id = p_account_id)
-        RETURNING credit_limit, balance INTO v_credit_limit, v_balance;
-
-        o_tx_performed := TRUE;
-    ELSIF (p_type = 'd'::TXTYPE) THEN
-        SELECT c.credit_limit,
-               c.balance
-        INTO v_credit_limit,
-            v_balance
-        FROM bank_accounts c
-        WHERE (c.id = p_account_id)
-        FOR UPDATE;
-
-        IF (FOUND) THEN
-            v_balance := (v_balance - p_amount);
-            IF (v_balance < -v_credit_limit) THEN
-                o_tx_performed := FALSE;
-            ELSE
-                UPDATE bank_accounts account SET balance = v_balance
-                WHERE (account.id = p_account_id);
-
-                o_tx_performed := TRUE;
-            END IF;
-        END IF;
-    END IF;
-
-    IF (o_tx_performed) THEN
-        INSERT INTO bank_transactions (account_id, type, amount, description)
-            VALUES (p_account_id, p_type, p_amount, p_description);
-    END IF;
-
-    o_credit_limit := v_credit_limit;
-    o_balance := v_balance;
-
-    RETURN NEXT;
-END;
-$$ LANGUAGE plpgsql;
 
 GRANT INSERT ON bank_accounts TO duke;
 GRANT UPDATE ON bank_accounts TO duke;

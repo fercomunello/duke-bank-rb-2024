@@ -1,7 +1,7 @@
 package com.github.bank.duke;
 
-import com.github.bank.duke.business.control.BankTransaction;
 import com.github.bank.duke.business.control.BankTransactionResult;
+import com.github.bank.duke.business.control.BankTransaction;
 import com.github.bank.duke.business.entity.BankAccount;
 import com.github.bank.duke.business.entity.TransactionType;
 import com.github.bank.duke.vertx.sql.Database;
